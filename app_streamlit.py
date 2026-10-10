@@ -129,8 +129,9 @@ NOMBRE = {"edad_conductor_cat":"edad", "nivel_bonus_cat":"nivel de bonus", "pote
           "combustible":"combustible", "uso":"uso"}
 
 def cotizar_empirico(d, p):
-    """Calcula la prima pura empírica con respaldo si el segmento está vacío."""
+    """Calcula la prima pura empírica con respaldo para segmentos pequeños."""
 
+    # 1. Buscar coincidencia con las 8 características
     seg = d[
         (d["edad_cat"].astype(str) ==
          banda("edad_conductor", p["edad_conductor"])) &
@@ -146,17 +147,20 @@ def cotizar_empirico(d, p):
          banda("nivel_bonus", p["bonus"]))
     ]
 
-    if seg["exposicion"].sum() <= 0:
+    # 2. Si hay menos de 100 pólizas, ampliar a edad y cobertura
+    if len(seg) < 100 or seg["exposicion"].sum() <= 0:
         seg = d[
             (d["edad_cat"].astype(str) ==
              banda("edad_conductor", p["edad_conductor"])) &
             (d["cobertura"] == p["cobertura"])
         ]
 
-    if seg["exposicion"].sum() <= 0:
+    # 3. Si todavía hay pocas, usar todas las pólizas de la cobertura
+    if len(seg) < 100 or seg["exposicion"].sum() <= 0:
         seg = d[d["cobertura"] == p["cobertura"]]
 
-    if seg["exposicion"].sum() <= 0:
+    # 4. Último respaldo: cartera completa
+    if len(seg) == 0 or seg["exposicion"].sum() <= 0:
         seg = d
 
     n = len(seg)
